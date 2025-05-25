@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎭 Emoji Mood Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            background: #f8f9fa;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab.active {
+            background: white;
+            border-bottom: 3px solid #667eea;
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+            min-height: 500px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .mood-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .mood-button {
+            background: white;
+            border: 3px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .mood-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+
+        .mood-button.selected {
+            border-width: 4px;
+            transform: scale(1.05);
+        }
+
+        .mood-emoji {
+            font-size: 3em;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .mood-name {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .selected-mood {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .note-section {
+            margin: 30px 0;
+        }
+
+        .note-section label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .note-input {
+            width: 100%;
+            min-height: 100px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .log-button {
+            display: block;
+            margin: 30px auto;
+            padding: 15px 40px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .log-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .log-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .history-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .history-list {
+            max-height: 500px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .history-item {
+            background: white;
+            margin-bottom: 15px;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .history-date {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .history-mood {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .history-note {
+            color: #666;
+            font-style: italic;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .stats-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            display: block;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .refresh-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .refresh-button:hover {
+            background: #1976D2;
+        }
+
+        select {
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-emoji {
+            font-size: 4em;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            .mood-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .history-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎭 Emoji Mood Tracker</h1>
+            <p>Track your daily emotions and discover patterns in your mood</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('log')">📝 Log Mood</button>
+            <button class="tab" onclick="showTab('history')">📅 History</button>
+            <button class="tab" onclick="showTab('stats')">📈 Statistics</button>
+        </div>
+
+        <!-- Log Mood Tab -->
+        <div id="log-tab" class="tab-content active">
+            <h2 style="text-align: center; margin-bottom: 20px; color: #667eea;">How are you feeling today?</h2>
+            
+            <div class="mood-grid" id="mood-grid">
+                <!-- Mood buttons will be generated by JavaScript -->
+            </div>
+
+            <div id="selected-mood" class="selected-mood" style="display: none;"></div>
+
+            <div class="note-section">
+                <label for="mood-note">Add a note (optional):</label>
+                <textarea id="mood-note" class="note-input" placeholder="What's on your mind? How are you feeling? What happened today?"></textarea>
+            </div>
+
+            <button id="log-button" class="log-button" disabled onclick="logMood()">Log My Mood</button>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-tab" class="tab-content">
+            <h2 style="text-align: center; margin-bottom: 20px; color: #667eea;">Your Mood History</h2>
+            
+            <div class="history-controls">
+                <label>Show last:</label>
+                <select id="history-days" onchange="refreshHistory()">
+                    <option value="7">7 days</option>
+                    <option value="14">14 days</option>
+                    <option value="30">30 days</option>
+                    <option value="all">All time</option>
+                </select>
+                <button class="refresh-button" onclick="refreshHistory()">Refresh</button>
+            </div>
+
+            <div id="history-list" class="history-list">
+                <!-- History items will be generated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Statistics Tab -->
+        <div id="stats-tab" class="tab-content">
+            <h2 style="text-align: center; margin-bottom: 20px; color: #667eea;">Your Mood Statistics</h2>
+            
+            <div id="stats-summary" class="stats-summary">
+                <!-- Stats summary will be generated by JavaScript -->
+            </div>
+
+            <div class="chart-container">
+                <canvas id="mood-chart" width="400" height="200"></canvas>
+            </div>
+
+            <button class="refresh-button" onclick="refreshStats()" style="display: block; margin: 20px auto;">Refresh Statistics</button>
+        </div>
+    </div>
+
+    <script>
+        // Mood options configuration
+        const moodOptions = {
+            "Very Happy": { emoji: "😄", value: 5, color: "#4CAF50" },
+            "Happy": { emoji: "😊", value: 4, color: "#8BC34A" },
+            "Neutral": { emoji: "😐", value: 3, color: "#FFC107" },
+            "Sad": { emoji: "😔", value: 2, color: "#FF9800" },
+            "Very Sad": { emoji: "😢", value: 1, color: "#F44336" },
+            "Tired": { emoji: "😴", value: 2, color: "#9C27B0" },
+            "Angry": { emoji: "😡", value: 1, color: "#E91E63" },
+            "Anxious": { emoji: "😰", value: 2, color: "#FF5722" },
+            "Cool": { emoji: "😎", value: 4, color: "#2196F3" },
+            "Thoughtful": { emoji: "🤔", value: 3, color: "#607D8B" }
+        };
+
+        // Global variables
+        let selectedMood = null;
+        let moodData = [];
+        let currentChart = null;
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            createMoodButtons();
+            refreshHistory();
+            refreshStats();
+        });
+
+        // Data persistence functions
+        function loadData() {
+            const saved = localStorage.getItem('moodTrackerData');
+            if (saved) {
+                try {
+                    moodData = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Error loading data:', e);
+                    moodData = [];
+                }
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('moodTrackerData', JSON.stringify(moodData));
+            } catch (e) {
+                console.error('Error saving data:', e);
+                alert('Unable to save data. Your browser may have storage limitations.');
+            }
+        }
+
+        // UI Functions
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+
+            // Refresh content if needed
+            if (tabName === 'history') refreshHistory();
+            if (tabName === 'stats') refreshStats();
+        }
+
+        function createMoodButtons() {
+            const grid = document.getElementById('mood-grid');
+            grid.innerHTML = '';
+
+            Object.entries(moodOptions).forEach(([mood, info]) => {
+                const button = document.createElement('div');
+                button.className = 'mood-button';
+                button.style.borderColor = info.color;
+                button.innerHTML = `
+                    <span class="mood-emoji">${info.emoji}</span>
+                    <span class="mood-name">${mood}</span>
+                `;
+                button.onclick = () => selectMood(mood);
+                grid.appendChild(button);
+            });
+        }
+
+        function selectMood(mood) {
+            selectedMood = mood;
+            const info = moodOptions[mood];
+
+            // Update button styles
+            document.querySelectorAll('.mood-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+
+            // Show selected mood
+            const selectedDiv = document.getElementById('selected-mood');
+            selectedDiv.innerHTML = `Selected: ${info.emoji} ${mood}`;
+            selectedDiv.style.display = 'block';
+
+            // Enable log button
+            document.getElementById('log-button').disabled = false;
+        }
+
+        function logMood() {
+            if (!selectedMood) {
+                alert('Please select a mood first!');
+                return;
+            }
+
+            const note = document.getElementById('mood-note').value.trim();
+            const now = new Date();
+
+            const entry = {
+                timestamp: now.toISOString(),
+                date: now.toISOString().split('T')[0],
+                time: now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+                emoji: moodOptions[selectedMood].emoji,
+                mood: selectedMood,
+                value: moodOptions[selectedMood].value,
+                note: note
+            };
+
+            moodData.push(entry);
+            saveData();
+
+            // Show success message
+            alert(`Mood logged: ${entry.emoji} ${selectedMood}`);
+
+            // Reset form
+            selectedMood = null;
+            document.getElementById('selected-mood').style.display = 'none';
+            document.getElementById('mood-note').value = '';
+            document.getElementById('log-button').disabled = true;
+            document.querySelectorAll('.mood-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            // Refresh other tabs
+            refreshHistory();
+            refreshStats();
+        }
+
+        function refreshHistory() {
+            const historyList = document.getElementById('history-list');
+            const daysFilter = document.getElementById('history-days').value;
+
+            if (moodData.length === 0) {
+                historyList.innerHTML = `
+                    <div class="empty-state">
+                        <span class="empty-state-emoji">📝</span>
+                        <h3>No mood entries yet</h3>
+                        <p>Start logging your moods to see your history here!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let filteredData = moodData;
+            if (daysFilter !== 'all') {
+                const days = parseInt(daysFilter);
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - days);
+                const cutoffString = cutoffDate.toISOString().split('T')[0];
+                filteredData = moodData.filter(entry => entry.date >= cutoffString);
+            }
+
+            historyList.innerHTML = '';
+
+            if (filteredData.length === 0) {
+                historyList.innerHTML = `
+                    <div class="empty-state">
+                        <span class="empty-state-emoji">🔍</span>
+                        <h3>No entries found</h3>
+                        <p>No mood entries found for the selected time period.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort by most recent first
+            filteredData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            filteredData.forEach(entry => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <div class="history-date">${entry.date} at ${entry.time}</div>
+                    <div class="history-mood">${entry.emoji} ${entry.mood}</div>
+                    ${entry.note ? `<div class="history-note">💭 ${entry.note}</div>` : ''}
+                `;
+                historyList.appendChild(item);
+            });
+        }
+
+        function refreshStats() {
+            const summaryDiv = document.getElementById('stats-summary');
+
+            if (moodData.length === 0) {
+                summaryDiv.innerHTML = `
+                    <div class="empty-state">
+                        <span class="empty-state-emoji">📊</span>
+                        <h3>No statistics available</h3>
+                        <p>Start logging your moods to see detailed statistics and charts!</p>
+                    </div>
+                `;
+                if (currentChart) {
+                    currentChart.destroy();
+                    currentChart = null;
+                }
+                return;
+            }
+
+            // Calculate statistics
+            const total = moodData.length;
+            const moodCounts = {};
+            let totalValue = 0;
+
+            moodData.forEach(entry => {
+                moodCounts[entry.mood] = (moodCounts[entry.mood] || 0) + 1;
+                totalValue += entry.value;
+            });
+
+            const averageMood = (totalValue / total).toFixed(1);
+            const mostCommon = Object.keys(moodCounts).reduce((a, b) => 
+                moodCounts[a] > moodCounts[b] ? a : b
+            );
+
+            // Get recent streak
+            const recentDays = getRecentDays();
+
+            // Create summary HTML
+            summaryDiv.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-number">${total}</span>
+                        <div class="stat-label">Total Entries</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">${averageMood}/5</span>
+                        <div class="stat-label">Average Mood</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">${moodOptions[mostCommon].emoji}</span>
+                        <div class="stat-label">Most Common: ${mostCommon}</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">${recentDays}</span>
+                        <div class="stat-label">Days Tracked</div>
+                    </div>
+                </div>
+                <h3 style="margin: 20px 0 10px 0;">Mood Frequency:</h3>
+                ${Object.entries(moodCounts)
+                    .sort(([,a], [,b]) => b - a)
+                    .map(([mood, count]) => {
+                        const percentage = ((count / total) * 100).toFixed(1);
+                        return `<div style="margin: 5px 0;">${moodOptions[mood].emoji} ${mood}: ${count} times (${percentage}%)</div>`;
+                    }).join('')}
+            `;
+
+            // Create chart
+            createMoodChart(moodCounts);
+        }
+
+        function getRecentDays() {
+            const uniqueDates = [...new Set(moodData.map(entry => entry.date))];
+            return uniqueDates.length;
+        }
+
+        function createMoodChart(moodCounts) {
+            const ctx = document.getElementById('mood-chart').getContext('2d');
+
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            const moods = Object.keys(moodCounts);
+            const counts = Object.values(moodCounts);
+            const colors = moods.map(mood => moodOptions[mood].color);
+
+            currentChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: moods.map(mood => `${moodOptions[mood].emoji} ${mood}`),
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Mood Distribution',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
